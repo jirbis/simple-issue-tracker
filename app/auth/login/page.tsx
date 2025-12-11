@@ -91,10 +91,11 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/projects`,
+          emailRedirectTo: `${siteUrl}/projects`,
         },
       });
 
