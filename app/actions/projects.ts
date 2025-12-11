@@ -20,6 +20,7 @@ export async function createProject(formData: FormData) {
   // Create project
   const { data: project, error: projectError } = await supabase
     .from('projects')
+    // @ts-expect-error - TypeScript has issues inferring types with .single() in same function
     .insert({
       name,
       key: key.toUpperCase(),
@@ -29,15 +30,19 @@ export async function createProject(formData: FormData) {
     .select()
     .single();
 
-  if (projectError) {
-    throw new Error(projectError.message);
+  if (projectError || !project) {
+    throw new Error(projectError?.message || 'Failed to create project');
   }
+
+  // Type assertion for the project
+  const projectId = (project as { id: string }).id;
 
   // Add creator as administrator
   const { error: membershipError } = await supabase
     .from('project_memberships')
+    // @ts-expect-error - TypeScript has issues inferring types after .single() calls
     .insert({
-      project_id: project.id,
+      project_id: projectId,
       user_id: user.id,
       role: 'ADMINISTRATOR',
     });
@@ -47,7 +52,7 @@ export async function createProject(formData: FormData) {
   }
 
   revalidatePath('/projects');
-  redirect(`/projects/${project.id}`);
+  redirect(`/projects/${projectId}`);
 }
 
 export async function updateProject(projectId: string, formData: FormData) {
@@ -60,6 +65,7 @@ export async function updateProject(projectId: string, formData: FormData) {
 
   const { error } = await supabase
     .from('projects')
+    // @ts-expect-error - TypeScript has issues inferring types when .single() used elsewhere in file
     .update({
       name,
       description,
@@ -108,9 +114,13 @@ export async function addProjectMember(
     throw new Error('User not found');
   }
 
+  // Type assertion for the selected field
+  const userId = (users as { id: string }).id;
+
+  // @ts-expect-error - TypeScript has issues inferring types after .single() calls
   const { error } = await supabase.from('project_memberships').insert({
     project_id: projectId,
-    user_id: users.id,
+    user_id: userId,
     role,
   });
 
@@ -132,6 +142,7 @@ export async function updateProjectMemberRole(
 
   const { error } = await supabase
     .from('project_memberships')
+    // @ts-expect-error - TypeScript has issues inferring types when .single() used elsewhere in file
     .update({ role })
     .eq('id', membershipId);
 

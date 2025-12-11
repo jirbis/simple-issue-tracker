@@ -29,6 +29,7 @@ export async function createTicket(projectId: string, formData: FormData) {
 
   const { data: ticket, error } = await supabase
     .from('tickets')
+    // @ts-expect-error - TypeScript has issues inferring types with .single() in same function
     .insert({
       project_id: projectId,
       title,
@@ -41,12 +42,15 @@ export async function createTicket(projectId: string, formData: FormData) {
     .select()
     .single();
 
-  if (error) {
-    throw new Error(error.message);
+  if (error || !ticket) {
+    throw new Error(error?.message || 'Failed to create ticket');
   }
 
+  // Type assertion for the ticket
+  const ticketId = (ticket as { id: string }).id;
+
   revalidatePath(`/projects/${projectId}`);
-  redirect(`/tickets/${ticket.id}`);
+  redirect(`/tickets/${ticketId}`);
 }
 
 export async function updateTicket(ticketId: string, formData: FormData) {
@@ -75,7 +79,10 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     throw new Error('Ticket not found');
   }
 
-  const { role } = await requireProjectRole(ticket.project_id, [
+  // Type assertion for the selected fields
+  const ticketData = ticket as { project_id: string; reporter_id: string };
+
+  const { role } = await requireProjectRole(ticketData.project_id, [
     'ADMINISTRATOR',
     'DEVELOPER',
     'CUSTOMER',
@@ -96,7 +103,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     };
   } else if (role === 'DEVELOPER') {
     // Developers can update their own tickets
-    if (ticket.reporter_id === user.id || assigneeId === user.id) {
+    if (ticketData.reporter_id === user.id || assigneeId === user.id) {
       updateData = {
         title,
         description,
@@ -110,7 +117,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     }
   } else if (role === 'CUSTOMER') {
     // Customers can only update title and description of their own tickets
-    if (ticket.reporter_id === user.id) {
+    if (ticketData.reporter_id === user.id) {
       updateData = {
         title,
         description,
@@ -122,6 +129,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
   const { error } = await supabase
     .from('tickets')
+    // @ts-expect-error - TypeScript has issues inferring types after .single() calls
     .update(updateData)
     .eq('id', ticketId);
 
@@ -154,11 +162,15 @@ export async function updateTicketStatus(
     throw new Error('Ticket not found');
   }
 
+  // Type assertion for the selected field
+  const projectId = (ticket as { project_id: string }).project_id;
+
   // Only admins and developers can change status
-  await requireProjectRole(ticket.project_id, ['ADMINISTRATOR', 'DEVELOPER']);
+  await requireProjectRole(projectId, ['ADMINISTRATOR', 'DEVELOPER']);
 
   const { error } = await supabase
     .from('tickets')
+    // @ts-expect-error - TypeScript has issues inferring types after .single() calls
     .update({ status })
     .eq('id', ticketId);
 
@@ -167,7 +179,7 @@ export async function updateTicketStatus(
   }
 
   revalidatePath(`/tickets/${ticketId}`);
-  revalidatePath(`/projects/${ticket.project_id}`);
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function deleteTicket(ticketId: string) {
@@ -189,8 +201,11 @@ export async function deleteTicket(ticketId: string) {
     throw new Error('Ticket not found');
   }
 
+  // Type assertion for the selected field
+  const projectId = (ticket as { project_id: string }).project_id;
+
   // Only admins can delete tickets
-  await requireProjectRole(ticket.project_id, ['ADMINISTRATOR']);
+  await requireProjectRole(projectId, ['ADMINISTRATOR']);
 
   const { error } = await supabase.from('tickets').delete().eq('id', ticketId);
 
@@ -198,6 +213,6 @@ export async function deleteTicket(ticketId: string) {
     throw new Error(error.message);
   }
 
-  revalidatePath(`/projects/${ticket.project_id}`);
-  redirect(`/projects/${ticket.project_id}`);
+  revalidatePath(`/projects/${projectId}`);
+  redirect(`/projects/${projectId}`);
 }

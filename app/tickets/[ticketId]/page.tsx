@@ -59,8 +59,24 @@ export default async function TicketPage({
     notFound();
   }
 
+  // Type assertion for the ticket to work around TypeScript inference issues
+  const ticketData = ticket as {
+    id: string;
+    key: string;
+    title: string;
+    description: string | null;
+    status: string;
+    priority: string;
+    assignee_id: string | null;
+    reporter_id: string;
+    due_date: string | null;
+    created_at: string;
+    updated_at: string;
+    project: { id: string; key: string; name: string };
+  };
+
   // Get user role
-  const role = await getUserProjectRole(ticket.project.id);
+  const role = await getUserProjectRole(ticketData.project.id);
 
   if (!role) {
     notFound();
@@ -70,19 +86,19 @@ export default async function TicketPage({
   let reporter = null;
   let assignee = null;
 
-  if (ticket.reporter_id) {
+  if (ticketData.reporter_id) {
     const {
       data: { user: reporterUser },
-    } = await supabase.auth.admin.getUserById(ticket.reporter_id);
+    } = await supabase.auth.admin.getUserById(ticketData.reporter_id);
     reporter = reporterUser
       ? { id: reporterUser.id, email: reporterUser.email || 'Unknown' }
       : null;
   }
 
-  if (ticket.assignee_id) {
+  if (ticketData.assignee_id) {
     const {
       data: { user: assigneeUser },
-    } = await supabase.auth.admin.getUserById(ticket.assignee_id);
+    } = await supabase.auth.admin.getUserById(ticketData.assignee_id);
     assignee = assigneeUser
       ? { id: assigneeUser.id, email: assigneeUser.email || 'Unknown' }
       : null;
@@ -121,13 +137,13 @@ export default async function TicketPage({
           </Link>
           <span className="mx-2">/</span>
           <Link
-            href={`/projects/${ticket.project.id}`}
+            href={`/projects/${ticketData.project.id}`}
             className="hover:text-gray-700"
           >
-            {ticket.project.key}
+            {ticketData.project.key}
           </Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-900">{ticket.key}</span>
+          <span className="text-gray-900">{ticketData.key}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -137,25 +153,25 @@ export default async function TicketPage({
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <span className="text-sm text-gray-500">{ticket.key}</span>
+                  <span className="text-sm text-gray-500">{ticketData.key}</span>
                   <h1 className="text-2xl font-bold text-gray-900 mt-1">
-                    {ticket.title}
+                    {ticketData.title}
                   </h1>
                 </div>
                 <div className="flex space-x-2">
-                  <Badge variant={getPriorityVariant(ticket.priority)}>
-                    {ticket.priority}
+                  <Badge variant={getPriorityVariant(ticketData.priority)}>
+                    {ticketData.priority}
                   </Badge>
-                  <Badge variant={getStatusVariant(ticket.status)}>
-                    {ticket.status.replace('_', ' ')}
+                  <Badge variant={getStatusVariant(ticketData.status)}>
+                    {ticketData.status.replace('_', ' ')}
                   </Badge>
                 </div>
               </div>
 
-              {ticket.description && (
+              {ticketData.description && (
                 <div className="prose max-w-none">
                   <p className="text-gray-700 whitespace-pre-wrap">
-                    {ticket.description}
+                    {ticketData.description}
                   </p>
                 </div>
               )}
@@ -192,24 +208,24 @@ export default async function TicketPage({
                     {assignee?.email || 'Unassigned'}
                   </dd>
                 </div>
-                {ticket.due_date && (
+                {ticketData.due_date && (
                   <div>
                     <dt className="text-xs text-gray-500">Due Date</dt>
                     <dd className="text-sm text-gray-900">
-                      {new Date(ticket.due_date).toLocaleDateString()}
+                      {new Date(ticketData.due_date).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 <div>
                   <dt className="text-xs text-gray-500">Created</dt>
                   <dd className="text-sm text-gray-900">
-                    {new Date(ticket.created_at).toLocaleString()}
+                    {new Date(ticketData.created_at).toLocaleString()}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Updated</dt>
                   <dd className="text-sm text-gray-900">
-                    {new Date(ticket.updated_at).toLocaleString()}
+                    {new Date(ticketData.updated_at).toLocaleString()}
                   </dd>
                 </div>
               </dl>
