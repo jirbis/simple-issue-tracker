@@ -76,11 +76,13 @@ Update the values:
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 **Important**:
 - `NEXT_PUBLIC_*` variables are exposed to the browser
 - `SUPABASE_SERVICE_ROLE_KEY` is server-side only (never expose to browser)
+- `NEXT_PUBLIC_SITE_URL` should be `http://localhost:3000` for local development
 
 ### 6. Run Development Server
 
@@ -122,13 +124,40 @@ In Vercel project settings, add the following environment variables:
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+NEXT_PUBLIC_SITE_URL=https://your-app-name.vercel.app
 ```
 
 Make sure to add these for all environments (Production, Preview, Development).
 
+**Important**: Set `NEXT_PUBLIC_SITE_URL` to your actual Vercel deployment URL (e.g., `https://simple-issue-tracker.vercel.app`).
+
 ### 4. Deploy
 
 Click "Deploy" and Vercel will build and deploy your application.
+
+### 5. Configure Supabase Authentication
+
+After deploying to Vercel, you need to configure Supabase authentication settings:
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Navigate to **Authentication** > **URL Configuration**
+3. Set the **Site URL** to your production URL:
+   ```
+   https://simple-issue-tracker.vercel.app
+   ```
+4. Add your deployment URL to **Redirect URLs**:
+   ```
+   https://simple-issue-tracker.vercel.app/**
+   ```
+5. For local development, also add:
+   ```
+   http://localhost:3000/**
+   ```
+
+**Why this is important**:
+- The Site URL determines where magic link emails redirect users
+- Without this configuration, magic links will use `localhost:3000` even in production
+- Redirect URLs whitelist where authentication callbacks are allowed
 
 ## Project Structure
 
