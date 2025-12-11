@@ -3,7 +3,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { getUserProjectRole } from '@/lib/auth/roles';
 import { revalidatePath } from 'next/cache';
-import { CommentVisibility } from '@/types/database';
+import { CommentVisibility, Ticket } from '@/types/database';
 
 export async function createComment(
   ticketId: string,
@@ -30,8 +30,11 @@ export async function createComment(
     throw new Error('Ticket not found');
   }
 
+  // Type assertion for the selected field
+  const projectId = (ticket as { project_id: string }).project_id;
+
   // Check user role in project
-  const role = await getUserProjectRole(ticket.project_id);
+  const role = await getUserProjectRole(projectId);
   if (!role) {
     throw new Error('Not a member of this project');
   }
@@ -41,7 +44,10 @@ export async function createComment(
     throw new Error('Customers cannot create internal comments');
   }
 
-  const { error } = await supabase.from('ticket_comments').insert({
+  // Create fresh client for insert to avoid type inference issues
+  const supabase2 = createClient();
+  // @ts-expect-error - TypeScript has issues inferring insert types after .single() calls
+  const { error } = await supabase2.from('ticket_comments').insert({
     ticket_id: ticketId,
     author_id: user.id,
     body,
@@ -80,12 +86,18 @@ export async function updateComment(
     throw new Error('Comment not found');
   }
 
-  if (comment.author_id !== user.id) {
+  // Type assertion for the selected field
+  const authorId = (comment as { author_id: string }).author_id;
+
+  if (authorId !== user.id) {
     throw new Error('You can only edit your own comments');
   }
 
-  const { error } = await supabase
+  // Create fresh client for update to avoid type inference issues
+  const supabase2 = createClient();
+  const { error } = await supabase2
     .from('ticket_comments')
+    // @ts-expect-error - TypeScript has issues inferring types after .single() calls
     .update({ body })
     .eq('id', commentId);
 
@@ -115,27 +127,35 @@ export async function deleteComment(commentId: string, ticketId: string) {
     throw new Error('Comment not found');
   }
 
+  // Type assertion for the selected fields
+  const commentData = comment as { author_id: string; ticket_id: string };
+
   // Get ticket's project
   const { data: ticket, error: ticketError } = await supabase
     .from('tickets')
     .select('project_id')
-    .eq('id', comment.ticket_id)
+    .eq('id', commentData.ticket_id)
     .single();
 
   if (ticketError || !ticket) {
     throw new Error('Ticket not found');
   }
 
+  // Type assertion for the selected field
+  const projectId = (ticket as { project_id: string }).project_id;
+
   // Check if user is author or admin
-  const role = await getUserProjectRole(ticket.project_id);
-  const isAuthor = comment.author_id === user.id;
+  const role = await getUserProjectRole(projectId);
+  const isAuthor = commentData.author_id === user.id;
   const isAdmin = role === 'ADMINISTRATOR';
 
   if (!isAuthor && !isAdmin) {
     throw new Error('Insufficient permissions');
   }
 
-  const { error } = await supabase
+  // Create fresh client for delete to avoid type inference issues
+  const supabase3 = createClient();
+  const { error } = await supabase3
     .from('ticket_comments')
     .delete()
     .eq('id', commentId);

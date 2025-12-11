@@ -25,7 +25,8 @@ export async function getUserProjectRole(
     return null;
   }
 
-  return data.role;
+  // Type assertion for the selected field
+  return (data as { role: ProjectRole }).role;
 }
 
 export async function requireProjectRole(
@@ -53,11 +54,14 @@ export async function requireProjectRole(
     throw new Error('Not a member of this project');
   }
 
-  if (!allowedRoles.includes(data.role)) {
+  // Type assertion for the selected field
+  const role = (data as { role: ProjectRole }).role;
+
+  if (!allowedRoles.includes(role)) {
     throw new Error('Insufficient permissions');
   }
 
-  return { role: data.role, userId: user.id };
+  return { role, userId: user.id };
 }
 
 export async function isProjectAdmin(projectId: string): Promise<boolean> {
@@ -87,8 +91,11 @@ export async function canEditTicket(
     return false;
   }
 
+  // Type assertion for the selected fields
+  const ticketData = ticket as { project_id: string; assignee_id: string | null; reporter_id: string };
+
   // Get user role in project
-  const role = await getUserProjectRole(ticket.project_id);
+  const role = await getUserProjectRole(ticketData.project_id);
 
   if (!role) {
     return false;
@@ -102,13 +109,13 @@ export async function canEditTicket(
   // Developers can edit tickets they are assigned to or reported
   if (role === 'DEVELOPER') {
     return (
-      ticket.assignee_id === userId || ticket.reporter_id === userId
+      ticketData.assignee_id === userId || ticketData.reporter_id === userId
     );
   }
 
   // Customers can only edit tickets they reported (limited fields)
   if (role === 'CUSTOMER') {
-    return ticket.reporter_id === userId;
+    return ticketData.reporter_id === userId;
   }
 
   return false;

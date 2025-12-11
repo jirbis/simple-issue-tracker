@@ -33,6 +33,9 @@ export default async function ProjectPage({
     notFound();
   }
 
+  // Type assertion for the project to work around TypeScript inference issues
+  const projectData = project as { id: string; key: string; name: string; description: string | null };
+
   // Fetch tickets
   const { data: tickets } = await supabase
     .from('tickets')
@@ -90,15 +93,15 @@ export default async function ProjectPage({
               Projects
             </Link>
             <span className="mx-2">/</span>
-            <span className="text-gray-900">{project.key}</span>
+            <span className="text-gray-900">{projectData.key}</span>
           </div>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {project.name}
+                {projectData.name}
               </h1>
-              {project.description && (
-                <p className="mt-2 text-gray-600">{project.description}</p>
+              {projectData.description && (
+                <p className="mt-2 text-gray-600">{projectData.description}</p>
               )}
             </div>
             <CreateTicketForm projectId={projectId} members={users} />
