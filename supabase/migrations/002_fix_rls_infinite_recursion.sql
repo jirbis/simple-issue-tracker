@@ -84,6 +84,13 @@ create policy "Users can view memberships of their projects"
     public.is_project_member(project_id, auth.uid())
   );
 
+-- Ensure INSERT policy exists for project_memberships
+drop policy if exists "Authenticated users can create memberships" on public.project_memberships;
+
+create policy "Authenticated users can create memberships"
+  on public.project_memberships for insert
+  with check (auth.uid() is not null);
+
 -- Only administrators can update memberships
 create policy "Administrators can update memberships"
   on public.project_memberships for update
@@ -98,7 +105,17 @@ create policy "Administrators can delete memberships"
     public.is_project_admin(project_id, auth.uid())
   );
 
--- 6. Grant execute permissions on the helper functions
+-- 6. Ensure INSERT policy exists for projects
+-- (In case migration 001 wasn't fully applied)
+-- ====================================
+
+drop policy if exists "Authenticated users can create projects" on public.projects;
+
+create policy "Authenticated users can create projects"
+  on public.projects for insert
+  with check (auth.uid() is not null);
+
+-- 7. Grant execute permissions on the helper functions
 -- ====================================
 
 grant execute on function public.is_project_member(uuid, uuid) to authenticated;
