@@ -113,7 +113,7 @@ drop policy if exists "Authenticated users can create projects" on public.projec
 
 create policy "Authenticated users can create projects"
   on public.projects for insert
-  with check (auth.uid() is not null);
+  with check (created_by = auth.uid());
 
 -- 7. Grant execute permissions on the helper functions
 -- ====================================
