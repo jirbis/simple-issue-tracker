@@ -1,6 +1,6 @@
 # Issue Tracker
 
-A minimal Jira-like issue tracker built with Next.js 14 (App Router), Supabase, and deployed on Vercel.
+A minimalistic issue tracker built with Next.js 14 (App Router), Supabase, and deployed on Vercel.
 
 ## Features
 
